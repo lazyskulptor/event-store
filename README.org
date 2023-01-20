@@ -1,0 +1,10 @@
+#+title: Event Store
+
+It only support Insert and Query
+
+** Insert
+ - save event consisting of keywords ~:entity-id~ ~:event-type~ ~:value~
+
+** Query
+ - query by entity identity id
+ - query by event type name
