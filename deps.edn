@@ -1,0 +1,4 @@
+{:deps
+ {clojure.java-time/clojure.java-time {:mvn/version "1.1.0"}
+  com.taoensso/faraday {:mvn/version "1.11.4"}
+  com.github.f4b6a3/uuid-creator {:mvn/version "4.6.1"}}}
