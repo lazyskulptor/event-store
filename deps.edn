@@ -1,4 +1,10 @@
 {:deps
  {clojure.java-time/clojure.java-time {:mvn/version "1.1.0"}
   com.taoensso/faraday {:mvn/version "1.11.4"}
-  com.github.f4b6a3/uuid-creator {:mvn/version "4.6.1"}}}
+  com.github.f4b6a3/uuid-creator {:mvn/version "4.6.1"}}
+
+ :aliases
+ {:test {:extra-paths ["test"]
+         :extra-deps {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+         :main-opts ["-m" "cognitect.test-runner"]
+         :exec-fn cognitect.test-runner.api/test}}}
