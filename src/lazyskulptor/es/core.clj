@@ -1,20 +1,28 @@
 (ns lazyskulptor.es.core
   (:require
    [taoensso.faraday :as far]
+   [clojure.spec.gen.alpha :as gen]
    [clojure.spec.alpha :as s]))
 
 (def ^:dynamic *client-opts* (atom {}))
 
 (def ^:dynamic *tbname* (atom ""))
 
+(s/def :lazyskulptor.es.core/uuid-string
+  (s/with-gen #(uuid? (java.util.UUID/fromString %))
+    #(gen/fmap (fn [_] (.toString (random-uuid))) (gen/string))))
+(s/def :lazyskulptor.es.core/entity-id :lazyskulptor.es.core/uuid-string)
+(s/def :lazyskulptor.es./event-type string?)
+(s/def :lazyskulptor.es.core/value (s/or :map map? :nil nil?))
+
+(s/def :lazyskulptor.es.core/event
+  (s/keys :req-un [:lazyskulptor.es.core/entity-id
+                   :lazyskulptor.es.core/event-type
+                   :lazyskulptor.es.core/value]))
+
 (defn- min-time
   ([] (min-time nil))
   ([t] (if (some? t) t (java.time.Instant/MIN))))
-
-(defn- event? [param]
-  (and (contains? param :event-type) ;; not nil
-       (contains? param :entity-id) ;; uuid
-       (contains? param :value))) ;; could be nil
 
 (defn- time-ordered []
   (com.github.f4b6a3.uuid.UuidCreator/getTimeOrdered))
@@ -24,8 +32,18 @@
          :uuid (.toString (time-ordered))
          :time (.toString (java.time.Instant/now))))
 
-(defn save-event [events]
-  {:pre [(s/valid? (s/or :single event? :coll (s/coll-of event?)) events)]}
+(defn save-event
+  "Persist coll of events
+  
+  ```clojure
+  (save-event {:entity-id \"uuid\"
+               :event-type \"test-create-club\",
+               :value {}})
+  ```
+  - events coll of map consisting of three keys :entity-id, :event-type, : value
+  "
+  [events]
+  {:pre [(s/valid? (s/or :single :lazyskulptor.es.core/event :coll (s/coll-of :lazyskulptor.es.core/event)) events)]}
   (let [events-coll (if (vector? events) events [events])]
     (far/transact-write-items
      @*client-opts*
@@ -62,12 +80,15 @@
     (.toInstant time)
     time))
 
-(defn by-entity-id [id event-type time]
-  {:pre [(time-spec time)]}
+(defn by-entity-id
+  "Return lazy seq matching entity-id and event-type after time"
+  ([id] (by-entity-id id nil nil))
+  ([id event-type time]
+   {:pre [(time-spec time)]}
    (by-id id
           event-type
           (min-time (ensure-instant time))
-          nil))
+          nil)))
 
 (defn- by-type [type time last-id]
   (lazy-seq
@@ -81,6 +102,9 @@
        (concat events (by-type type time (:uuid (peek events))))
        events))))
 
-(defn by-event-type [event-type time]
-  {:pre [(time-spec time)]}
-  (by-type event-type (min-time (ensure-instant time)) nil))
+(defn by-event-type
+  "Return lazy seq matching event-type after time"
+  ([event-type] (by-event-type event-type nil))
+  ([event-type time]
+   {:pre [(time-spec time)]}
+   (by-type event-type (min-time (ensure-instant time)) nil)))

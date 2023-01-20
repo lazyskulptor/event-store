@@ -45,7 +45,7 @@
     ))
 
 
-(deftest test-save-event
+(deftest by-entity-id-test
   (testing "Save event with uuid"
     (let [uuid (-> (random) .toString)]
       (save-event {:entity-id uuid
@@ -54,7 +54,7 @@
       (is (= uuid
              (:entity-id (first (by-entity-id uuid nil nil))))))))
 
-(deftest test-save-event
+(deftest by-event-type-test
   (testing "Save event with uuid"
     (let [uuid (-> (random) .toString)
           event-type "test-create-club"]
@@ -62,4 +62,4 @@
                    :event-type event-type,
                    :value {}})
       (is (= event-type
-             (:event-type (first (by-entity-id uuid nil nil))))))))
+             (:event-type (first (by-event-type event-type nil))))))))
