@@ -2,6 +2,8 @@
 
 It only support Insert and Query
 
+Query's results are always ordered time ascending
+
 ** Insert
  - save event consisting of keywords ~:entity-id~ ~:event-type~ ~:value~
 
