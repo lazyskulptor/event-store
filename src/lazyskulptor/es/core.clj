@@ -70,10 +70,10 @@
        events))))
 
 (defn time-spec [time]
-  '(s/valid? (s/or :nil nil?
-                  :date #(= (type %) java.util.Date)
-                  :instant #(= (type %) java.time.Instant))
-            ~time))
+  `(s/valid? (s/or :nil nil?
+                   :date #(= (type %) java.util.Date)
+                   :instant #(= (type %) java.time.Instant))
+             ~time))
 
 (defn ensure-instant [time]
   (if (and (not= nil time) (instance? time java.util.Date))
@@ -89,6 +89,7 @@
           event-type
           (min-time (ensure-instant time))
           nil)))
+
 
 (defn- by-type [type time last-id]
   (lazy-seq
@@ -108,3 +109,30 @@
   ([event-type time]
    {:pre [(time-spec time)]}
    (by-type event-type (min-time (ensure-instant time)) nil)))
+
+;;
+(defn- merged [f ids]
+  {:pre [(s/valid? coll? ids)]}
+  (let [before? (fn [d1 d2] (> (.compareTo d1 d2) 0))
+        seek-oldest (fn [seqs]
+                      (loop [oldest (first seqs) sub (next seqs) index 0 cursor 1]
+                        (cond
+                          (nil? sub)
+                            (list oldest index)
+                          (before? (first oldest) (ffirst sub))
+                            (recur (first sub) (next sub) cursor (inc cursor))
+                          :else (recur oldest (next sub) index (inc cursor)))))
+        worker (fn worker [sub-seqs]
+                 (let [[oldest index] (seek-oldest sub-seqs)]
+                   (cons oldest
+                         (worker (assoc sub-seqs index (next (nth index sub-seqs)))))))
+        seqs (map f ids)]
+    (worker seqs)))
+
+(defn by-entity-ids
+  ([ids] (merged by-entity-id ids))
+  ([ids event-type time] (merged #(by-entity-id % event-type time) ids)))
+
+(defn by-entity-types
+  ([ids] (merged by-event-type ids))
+  ([ids time] (merged #(by-event-type % time) ids)))
