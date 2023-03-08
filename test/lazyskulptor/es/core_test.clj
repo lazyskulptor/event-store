@@ -37,12 +37,14 @@
   (fn [f]
     (swap! *client-opts* (fn [_] {:access-key "fakeMyKeyId"
                                   :secret-key "fakeSecretAccessKey"
-                                  :endpoint "http://localhost:8000"}))
+                                  :endpoint (str "http://" (or (System/getenv "DYNAMO_HOST") "localhost") ":8000")}))
+    
     (swap! *tbname* (fn [_] "event-table"))
-    (del-tb @*client-opts*  @*tbname*)
+    (println "DYNAMO OPT :: " @*client-opts*)
+    (println "TABLE NAME :: " @*tbname*)
     (create-tb @*client-opts*  @*tbname*)
     (f)
-    ))
+    (del-tb @*client-opts*  @*tbname*)))
 
 
 (deftest by-entity-id-test
