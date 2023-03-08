@@ -112,28 +112,36 @@
    (by-type event-type (min-time (ensure-instant time)) nil)))
 
 ;;
-(defn- merged [f ids]
+(defn- seek-oldest [seqs before?]
+  (loop [oldest (first seqs) sub (next seqs) index 0 cursor 1]
+    (cond
+      (nil? sub)
+      (list (first oldest)
+            (when seqs
+              (filterv some? (assoc seqs index (next oldest)))))
+      (and oldest (before? (ffirst sub) (first oldest)))
+        (recur (first sub) (next sub) cursor (inc cursor))
+      :else (recur oldest (next sub) index (inc cursor)))))
+
+(defn- merge [f ids]
   {:pre [(s/valid? coll? ids)]}
-  (let [before? (fn [d1 d2] (> (.compareTo d1 d2) 0))
-        seek-oldest (fn [seqs]
-                      (loop [oldest (first seqs) sub (next seqs) index 0 cursor 1]
-                        (cond
-                          (nil? sub)
-                            (list oldest index)
-                          (before? (first oldest) (ffirst sub))
-                            (recur (first sub) (next sub) cursor (inc cursor))
-                          :else (recur oldest (next sub) index (inc cursor)))))
-        worker (fn worker [sub-seqs]
-                 (let [[oldest index] (seek-oldest sub-seqs)]
-                   (cons oldest
-                         (worker (assoc sub-seqs index (next (nth index sub-seqs)))))))
-        seqs (map f ids)]
-    (worker seqs)))
+  (let [before? (fn [d1 d2]
+                  (.isBefore (Instant/parse (:time d1))
+                             (Instant/parse (:time d2))))
+        select (fn worker [seqs]
+                 (lazy-seq
+                  (let [[oldest next-seqs] (seek-oldest seqs before?)]
+                    (if (first next-seqs)
+                      (cons oldest (worker next-seqs))
+                      (list oldest)))))
+        seqs (mapv f ids)]
+    (select seqs)))
 
+;; (first (by-entity-ids (vec (distinct (mapv :entity-id (scan))))))
 (defn by-entity-ids
-  ([ids] (merged by-entity-id ids))
-  ([ids event-type time] (merged #(by-entity-id % event-type time) ids)))
+  ([ids] (merge by-entity-id ids))
+  ([ids event-type time] (merge #(by-entity-id % event-type time) ids)))
 
-(defn by-entity-types
-  ([ids] (merged by-event-type ids))
-  ([ids time] (merged #(by-event-type % time) ids)))
+(defn by-event-types
+  ([ids] (merge by-event-type ids))
+  ([ids time] (merge #(by-event-type % time) ids)))

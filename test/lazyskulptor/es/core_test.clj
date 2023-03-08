@@ -1,6 +1,6 @@
 (ns lazyskulptor.es.core-test
   (:require
-   [lazyskulptor.es.core :refer [*client-opts* *tbname* save-event by-entity-id by-event-type]]
+   [lazyskulptor.es.core :refer [*client-opts* *tbname* save-event by-entity-id by-entity-ids by-event-type by-event-types]]
    [taoensso.faraday :as far])
   (:require
    [clojure.test :refer :all]))
@@ -53,6 +53,21 @@
                    :value {}})
       (is (= uuid
              (:entity-id (first (by-entity-id uuid nil nil))))))))
+
+(deftest by-entity-ids-test
+  (testing "Save event with uuid"
+    (let [uuid1 (-> (random) .toString)
+          uuid2 (-> (random) .toString)]
+
+      (save-event {:entity-id uuid1 :event-type "create", :value {}})
+      (save-event {:entity-id uuid2 :event-type "create", :value {}})
+      (doseq [_ (range 10)]
+        (save-event {:entity-id uuid1 :event-type "update", :value {}}))
+      (doseq [_ (range 10)]
+        (save-event {:entity-id uuid2 :event-type "update", :value {}}))
+      (let [result (by-entity-ids [uuid1 uuid2])]
+        (is (= uuid1 (:entity-id (first result))))
+        (is (= 22 (count result)))))))
 
 (deftest by-event-type-test
   (testing "Save event with uuid"
