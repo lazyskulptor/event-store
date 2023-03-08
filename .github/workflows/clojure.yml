@@ -11,16 +11,14 @@ jobs:
 
     runs-on: ubuntu-latest
     container: clojure:temurin-11-bullseye-slim
+    services:
+      dynamo-db:
+        image: amazon/dynamodb-local
+        ports:
+          - 8000/tcp
     steps:
     - uses: actions/checkout@v3
-    - name: Setup DynamoDB Local
-      uses: rrainn/dynamodb-action@v2.0.0
-      with:
-        dbPath: # undefined by default, if this is undefined inMemory will be used
-        sharedDb: # undefined by default
-        delayTransientStatuses: # undefined by default
-        optimizeDbBeforeStartup: # undefined by default
-        port: 8000
-        cors: '*'
     - name: Run tests
       run: clj -X:test
+      env:
+        DYNAMO_HOST: dynamo-db

@@ -35,9 +35,13 @@
 (use-fixtures
   :once
   (fn [f]
-    (swap! *client-opts* (fn [_] {:access-key "fakeMyKeyId"
-                                  :secret-key "fakeSecretAccessKey"
-                                  :endpoint "http://localhost:8000"}))
+    (let [host (or (System/getenv "DYNAMO_HOST") "localhost")]
+      (println "DYNAMO HOST :: " host)
+      (swap! *client-opts* (fn [_] {:access-key "fakeMyKeyId"
+                                    :secret-key "fakeSecretAccessKey"
+                                    :endpoint (str "http://" host ":8000")}))
+      )
+    
     (swap! *tbname* (fn [_] "event-table"))
     (del-tb @*client-opts*  @*tbname*)
     (create-tb @*client-opts*  @*tbname*)
