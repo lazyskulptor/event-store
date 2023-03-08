@@ -1,8 +1,6 @@
 name: Clojure CI
 
 on:
-  push:
-    branches: [ "main", "feat-cicd" ]
   pull_request:
     branches: [ "main" ]
 
