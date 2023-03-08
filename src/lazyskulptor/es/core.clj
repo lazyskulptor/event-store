@@ -3,6 +3,7 @@
    [taoensso.faraday :as far]
    [clojure.spec.gen.alpha :as gen]
    [clojure.spec.alpha :as s]))
+(import java.time.Instant)
 
 (def ^:dynamic *client-opts* (atom {}))
 
@@ -22,7 +23,7 @@
 
 (defn- min-time
   ([] (min-time nil))
-  ([t] (if (some? t) t (java.time.Instant/MIN))))
+  ([t] (if (some? t) t (Instant/MIN))))
 
 (defn- time-ordered []
   (com.github.f4b6a3.uuid.UuidCreator/getTimeOrdered))
@@ -30,7 +31,7 @@
 (defn- init-event [event]
   (assoc event
          :uuid (.toString (time-ordered))
-         :time (.toString (java.time.Instant/now))))
+         :time (.toString (Instant/now))))
 
 (defn save-event
   "Persist coll of events
@@ -72,7 +73,7 @@
 (defn time-spec [time]
   `(s/valid? (s/or :nil nil?
                    :date #(= (type %) java.util.Date)
-                   :instant #(= (type %) java.time.Instant))
+                   :instant #(= (type %) Instant))
              ~time))
 
 (defn ensure-instant [time]
