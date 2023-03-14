@@ -1,12 +1,17 @@
 (ns lazyskulptor.es.core-test
   (:require
-   [lazyskulptor.es.core :refer [*client-opts* *tbname* save-event by-entity-id by-entity-ids by-event-type by-event-types]]
+   [lazyskulptor.es.core :refer [save-event by-entity-id by-entity-ids by-event-type set-env]]
    [taoensso.faraday :as far])
   (:require
    [clojure.test :refer :all]))
 
+(def test-opts {:access-key "fakeMyKeyId"
+                :secret-key "fakeSecretAccessKey"
+                :endpoint (str "http://" (or (System/getenv "DYNAMO_HOST") "localhost") ":8000")})
+(def test-tb "event-table")
+
 (defn create-tb
-  ([] (create-tb @*client-opts* @*tbname*))
+  ([] (create-tb test-opts test-tb))
   ([client-opts tbname]
    (far/create-table
     client-opts  tbname
@@ -23,11 +28,11 @@
 (defn del-tb [opts tb] (far/delete-table opts tb))
 
 (defn list-tb
-  ([] (list-tb @*client-opts*))
+  ([] (list-tb test-opts))
   ([opts] (far/list-tables opts)))
 
 (defn scan
-  [] (far/scan @*client-opts* @*tbname*))
+  [] (far/scan test-opts test-tb))
 
 (defn random []
   (random-uuid))
@@ -35,16 +40,12 @@
 (use-fixtures
   :once
   (fn [f]
-    (swap! *client-opts* (fn [_] {:access-key "fakeMyKeyId"
-                                  :secret-key "fakeSecretAccessKey"
-                                  :endpoint (str "http://" (or (System/getenv "DYNAMO_HOST") "localhost") ":8000")}))
-    
-    (swap! *tbname* (fn [_] "event-table"))
-    (println "DYNAMO OPT :: " @*client-opts*)
-    (println "TABLE NAME :: " @*tbname*)
-    (create-tb @*client-opts*  @*tbname*)
+    (set-env test-opts test-tb)
+    (println "DYNAMO OPT :: " test-opts)
+    (println "TABLE NAME :: " test-tb)
+    (create-tb test-opts  test-tb)
     (f)
-    (del-tb @*client-opts*  @*tbname*)))
+    (del-tb test-opts  test-tb)))
 
 
 (deftest by-entity-id-test
