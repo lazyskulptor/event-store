@@ -17,3 +17,6 @@ migrate_working_dir/
 
 .clj-kondo
 .lsp
+.idea
+target
+event-store.iml
