@@ -21,4 +21,4 @@ jobs:
         DYNAMO_HOST: dynamo-db
 
     - name: Run Build
-      run: clj -X:build jar
+      run: clj -T:build jar
