@@ -1,29 +1,30 @@
 (ns lazyskulptor.es.core-test
   (:require
-   [lazyskulptor.es.core :refer [save-event by-entity-id by-entity-ids by-event-type set-env]]
-   [taoensso.faraday :as far])
+    [lazyskulptor.es.core :refer [save-event by-entity-id by-entity-ids by-event-type set-env]]
+    [lazyskulptor.es.impl]
+    [taoensso.faraday :as far])
   (:require
-   [clojure.test :refer :all]))
+    [clojure.test :refer :all]))
 
 (def test-opts {:access-key "fakeMyKeyId"
                 :secret-key "fakeSecretAccessKey"
-                :endpoint (str "http://" (or (System/getenv "DYNAMO_HOST") "localhost") ":8000")})
+                :endpoint   (str "http://" (or (System/getenv "DYNAMO_HOST") "localhost") ":8000")})
 (def test-tb "event-table")
 
 (defn create-tb
   ([] (create-tb test-opts test-tb))
   ([client-opts tbname]
    (far/create-table
-    client-opts  tbname
-    [:entity-id :s]  ; Primary key named "id", (:n => number type)
-    {:range-keydef [:uuid :s]
-     :throughput {:read 1 :write 1} ; Read & write capacity (units/sec)
-     :gsindexes [{:name :event-type
-                  :hash-keydef [:event-type :s]
-                  :range-keydef [:uuid :s]
-                  :projection [:time :entity-id]
-                  :throughput {:read 1 :write 1}}]
-     :block? true}))) ; Block thread during table creation
+     client-opts tbname
+     [:entity-id :s]                                        ; Primary key named "id", (:n => number type)
+     {:range-keydef [:uuid :s]
+      :throughput   {:read 1 :write 1}                      ; Read & write capacity (units/sec)
+      :gsindexes    [{:name         :event-type
+                      :hash-keydef  [:event-type :s]
+                      :range-keydef [:uuid :s]
+                      :projection   [:time :entity-id]
+                      :throughput   {:read 1 :write 1}}]
+      :block?       true})))                                ; Block thread during table creation
 
 (defn del-tb [opts tb] (far/delete-table opts tb))
 
@@ -43,17 +44,17 @@
     (set-env test-opts test-tb)
     (println "DYNAMO OPT :: " test-opts)
     (println "TABLE NAME :: " test-tb)
-    (create-tb test-opts  test-tb)
+    (create-tb test-opts test-tb)
     (f)
-    (del-tb test-opts  test-tb)))
+    (del-tb test-opts test-tb)))
 
 
 (deftest by-entity-id-test
   (testing "Save event with uuid"
     (let [uuid (-> (random) .toString)]
-      (save-event {:entity-id uuid
+      (save-event {:entity-id  uuid
                    :event-type "test-create-club",
-                   :value {}})
+                   :value      {}})
       (is (= uuid
              (:entity-id (first (by-entity-id uuid nil nil))))))))
 
@@ -76,8 +77,8 @@
   (testing "Save event with uuid"
     (let [uuid (-> (random) .toString)
           event-type "test-create-club"]
-      (save-event {:entity-id uuid
+      (save-event {:entity-id  uuid
                    :event-type event-type,
-                   :value {}})
+                   :value      {}})
       (is (= event-type
              (:event-type (first (by-event-type event-type nil))))))))

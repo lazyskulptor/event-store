@@ -1,13 +1,13 @@
 (ns lazyskulptor.es.core
   (:require
-   [clojure.spec.gen.alpha :as gen]
-   [clojure.spec.alpha :as s]))
+    [clojure.spec.gen.alpha :as gen]
+    [clojure.spec.alpha :as s]))
 (import java.time.Instant)
 
 ;; specs
 (s/def :lazyskulptor.es.core/uuid-string
   (s/with-gen #(uuid? (java.util.UUID/fromString %))
-    #(gen/fmap (fn [_] (.toString (random-uuid))) (gen/string))))
+              #(gen/fmap (fn [_] (.toString (random-uuid))) (gen/string))))
 (s/def :lazyskulptor.es.core/entity-id :lazyskulptor.es.core/uuid-string)
 (s/def :lazyskulptor.es./event-type string?)
 (s/def :lazyskulptor.es.core/value (s/or :map map? :nil nil?))
@@ -18,10 +18,12 @@
                    :lazyskulptor.es.core/value]))
 
 ;; util functions
-(defmulti set-env identity)
 
-(defn- multi-args? [args]
+(defn- multi-args? [& args]
   (if (> (count args) 1) :multi-args :single-args))
+(defn- as-default [& _] :default)
+
+(defmulti set-env as-default)
 
 (defn- seek-oldest [seqs before?]
   (loop [oldest (first seqs) sub (next seqs) index 0 cursor 1]
@@ -51,16 +53,16 @@
 
 ;; core functions
 (defmulti save-event
-  "Persist coll of events
-  
-  ```clojure
-  (save-event {:entity-id \"uuid\"
-               :event-type \"test-create-club\",
-               :value {}})
-  ```
-  - events coll of map consisting of three keys :entity-id, :event-type, : value
-  "
-  identity)
+          "Persist coll of events
+
+          ```clojure
+          (save-event {:entity-id \"uuid\"
+                       :event-type \"test-create-club\",
+                       :value {}})
+          ```
+          - events coll of map consisting of three keys :entity-id, :event-type, : value
+          "
+          as-default)
 
 
 (defmulti by-entity-id multi-args?)
