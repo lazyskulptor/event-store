@@ -7,7 +7,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    container: clojure:temurin-11-bullseye-slim
+    container: clojure:temurin-11-bullseye
     services:
       dynamo-db:
         image: amazon/dynamodb-local
@@ -15,6 +15,18 @@ jobs:
           - 8000/tcp
     steps:
     - uses: actions/checkout@v3
+    - name: Install clojure tools
+      run: apt-get update; apt-get install -y clojure
+    - name: Cache clojure dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.m2/repository
+          ~/.gitlibs
+          ~/.deps.clj
+        # List all files containing dependencies:
+        key: cljdeps-${{ hashFiles('deps.edn') }}
+        restore-keys: cljdeps-
     - name: Run tests
       run: clj -X:test
       env:
