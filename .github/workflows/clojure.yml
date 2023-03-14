@@ -7,7 +7,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    container: clojure:temurin-11-alpine
+    container: clojure:temurin-11-bullseye
     services:
       dynamo-db:
         image: amazon/dynamodb-local
