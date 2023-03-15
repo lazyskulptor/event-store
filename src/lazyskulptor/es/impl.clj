@@ -111,7 +111,7 @@
 (defmethod core/by-entity-id :multi-args [id & args]
   (by-id id
          (first args)
-         (min-time (ensure-instant (ffirst args)))
+         (min-time (ensure-instant (second args)))
          nil))
 
 (defmethod core/list-tb :default [_]
