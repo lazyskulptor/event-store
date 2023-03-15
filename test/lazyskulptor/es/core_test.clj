@@ -36,6 +36,20 @@
       (is (= uuid
              (:entity-id (first (by-entity-ids uuid))))))))
 
+(deftest by-entity-id-test-filter
+  (testing "Save event with uuid"
+    (let [uuid (-> (random) .toString)
+          event-name :test-create-club]
+      (save-event {:entity-id  uuid
+                   :event-type event-name,
+                   :value      {}})
+      (is (= 0
+             (count (by-entity-ids uuid "wrong-test-name" nil))))
+      (is (= 1
+             (count (by-entity-ids uuid event-name nil))))
+      (is (= 0
+             (count (by-entity-ids uuid event-name (java.time.Instant/now))))))))
+
 (deftest by-entity-ids-test
   (testing "Save event with uuid"
     (let [uuid1 (-> (random) .toString)
