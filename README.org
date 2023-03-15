@@ -4,9 +4,38 @@ It only support Insert and Query
 
 Query's results are always ordered time ascending
 
+* How to use
+** Configure Environment
+ - first DynamoDB options and table name need to be defined.  
+ 
+    If there isn't table with the name, one will be created.
+ #+BEGIN_SRC clojure
+ (def dynamo-db-option {:access-key "fakeMyKeyId"
+                        :secret-key "fakeSecretAccessKey"
+                        :endpoint   "http://localhost:8000"})
+ (def dynamo-db-table-name "event-table")
+ (set-env dynamo-db-option dynamo-db-table-name)
+ #+END_SRC
+
 ** Insert
  - save event consisting of keywords ~:entity-id~ ~:event-type~ ~:value~
+ #+BEGIN_SRC clojure
+ (save-event {:entity-id  "uuid-string"
+              :event-type "test-create-club",
+              :value {}}
+ #+END_SRC
 
 ** Query
  - query by entity identity id
  - query by event type name
+ - if time is passed events after the time will be queried
+ #+BEGIN_SRC clojure
+ (by-entity-ids uuid)
+ (by-entity-ids [uuid])
+ (by-entity-ids [uuid1 uuid2])
+ (by-entity-ids [uuid1 uuid2] event-type time)
+ 
+ (by-event-types event-type)
+ (by-event-types [event-type])
+ (by-event-types [type1 type1] time)
+ #+END_SRC
