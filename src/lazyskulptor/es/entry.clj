@@ -15,7 +15,7 @@
       (list (first oldest)
             (when seqs
               (filterv some? (assoc seqs index (next oldest)))))
-      (and oldest (before? (second sub) (first oldest)))
+      (and oldest (before? (ffirst sub) (first oldest)))
       (recur (first sub) (next sub) cursor (inc cursor))
       :else (recur oldest (next sub) index (inc cursor)))))
 
@@ -29,7 +29,7 @@
                    (let [[oldest next-seqs] (seek-oldest seqs before?)]
                      (if (first next-seqs)
                        (cons oldest (worker next-seqs))
-                       (list oldest)))))
+                       (if oldest (list oldest) (list))))))
         seqs (mapv f ids)]
     (select seqs)))
 

@@ -29,7 +29,7 @@
              ~time))
 
 (defn ensure-instant [time]
-  (if (and (not= nil time) (instance? time java.util.Date))
+  (if (and (not= nil time) (instance? java.util.Date time))
     (.toInstant time)
     time))
 
