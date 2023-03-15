@@ -4,10 +4,12 @@
             [clojure.spec.alpha :as s]))
 (import java.time.Instant)
 
+;; state
 (def ^:dynamic *client-opts* (atom {}))
 
 (def ^:dynamic *tbname* (atom ""))
 
+;; util fn
 (defn- min-time
   ([] (min-time nil))
   ([t] (if (some? t) t (Instant/MIN))))
@@ -31,9 +33,30 @@
     (.toInstant time)
     time))
 
+(defn create-tb
+  [client-opts tbname]
+  (far/create-table
+    client-opts tbname
+    [:entity-id :s]                                         ; Primary key named "id", (:n => number type)
+    {:range-keydef [:uuid :s]
+     :throughput   {:read 1 :write 1}                       ; Read & write capacity (units/sec)
+     :gsindexes    [{:name         :event-type
+                     :hash-keydef  [:event-type :s]
+                     :range-keydef [:uuid :s]
+                     :projection   [:time :entity-id]
+                     :throughput   {:read 1 :write 1}}]
+     :block?       true}))
+
+(defn exist-tb? [tbname]
+  (let [tbs (core/list-tb :default)]
+    (some #{tbname} tbs) ))
+
+;; core implementation
 (defmethod core/set-env :default [config tbname]
   (swap! *client-opts* (fn [_] config))
-  (swap! *tbname* (fn [_] tbname)))
+  (swap! *tbname* (fn [_] tbname))
+  (when (not (exist-tb? @*tbname*))
+    (create-tb @*client-opts* @*tbname*)))
 
 (defn- query [prim-key-conds opts]
   (far/query @*client-opts* @*tbname*
@@ -90,3 +113,6 @@
          (first args)
          (min-time (ensure-instant (ffirst args)))
          nil))
+
+(defmethod core/list-tb :default [_]
+  (far/list-tables @*client-opts*))
