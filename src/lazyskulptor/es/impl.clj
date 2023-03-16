@@ -5,9 +5,9 @@
 (import java.time.Instant)
 
 ;; state
-(def ^:dynamic *client-opts* (atom {}))
+(def ^:private ^:dynamic *client-opts* (atom {}))
 
-(def ^:dynamic *tbname* (atom ""))
+(def ^:private ^:dynamic *tbname* (atom ""))
 
 ;; util fn
 (defn- min-time
@@ -21,12 +21,6 @@
   (assoc event
     :uuid (.toString (time-ordered))
     :time (.toString (Instant/now))))
-
-(defn time-spec [time]
-  `(s/valid? (s/or :nil nil?
-                   :date #(= (type %) java.util.Date)
-                   :instant #(= (type %) Instant))
-             ~time))
 
 (defn ensure-instant [time]
   (if (and (not= nil time) (instance? java.util.Date time))
@@ -52,7 +46,7 @@
     (some #{tbname} tbs) ))
 
 ;; core implementation
-(defmethod core/set-env :default [config tbname]
+(defmethod ^:private core/set-env :default [config tbname]
   (swap! *client-opts* (fn [_] config))
   (swap! *tbname* (fn [_] tbname))
   (when (not (exist-tb? @*tbname*))
@@ -63,9 +57,9 @@
              prim-key-conds
              (conj {:limit 100} opts)))
 
-(defmethod core/save-event :default
+(defmethod ^:private core/save-event :default
   [events]
-  {:pre [(s/valid? (s/or :single :lazyskulptor.es.core/event :coll (s/coll-of :lazyskulptor.es.core/event)) events)]}
+  {:pre [(s/valid? (s/or :single :lazyskulptor.es/event :coll (s/coll-of :lazyskulptor.es/event)) events)]}
   (let [events-coll (if (vector? events) events [events])]
     (far/transact-write-items
       @*client-opts*
@@ -73,8 +67,9 @@
                    (map init-event events-coll))})))
 
 (defn- by-id [id event-type time last-id]
-  {:pre [(s/and (s/valid? some? id)
-                (time-spec time))]}
+  {:pre [(s/and (s/valid? :lazyskulptor.es/entity-id id)
+                (s/valid? (s/or :nil nil? :not-nil :lazyskulptor.es/event-type) event-type)
+                (s/valid? :lazyskulptor.es/time time))]}
   (lazy-seq
     (let [events (query
                    (conj {:entity-id [:eq id]}
@@ -88,6 +83,8 @@
         events))))
 
 (defn- by-type [type time last-id]
+  {:pre [(s/and (s/valid? :lazyskulptor.es/event-type type)
+                (s/valid? :lazyskulptor.es/time time))]}
   (lazy-seq
     (let [events (query
                    (conj {:event-type [:eq type]}
@@ -99,20 +96,20 @@
         (concat events (by-type type time (:uuid (peek events))))
         events))))
 
-(defmethod core/by-event-type :single-args [event-type & _args]
+(defmethod ^:private core/by-event-type :single-args [event-type & _args]
   (core/by-event-type event-type nil))
 
-(defmethod core/by-event-type :multi-args [event-type & args]
+(defmethod ^:private core/by-event-type :multi-args [event-type & args]
   (by-type event-type (min-time (ensure-instant (first args))) nil))
 
-(defmethod core/by-entity-id :single-args [id & _args]
+(defmethod ^:private core/by-entity-id :single-args [id & _args]
   (core/by-entity-id id nil nil))
 
-(defmethod core/by-entity-id :multi-args [id & args]
+(defmethod ^:private core/by-entity-id :multi-args [id & args]
   (by-id id
          (first args)
          (min-time (ensure-instant (second args)))
          nil))
 
-(defmethod core/list-tb :default [_]
+(defmethod ^:private core/list-tb :default [_]
   (far/list-tables @*client-opts*))
