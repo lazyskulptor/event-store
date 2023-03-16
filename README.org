@@ -5,6 +5,7 @@ It only support Insert and Query
 Query's results are always ordered time ascending
 
 * How to use
+*** [[src/lazyskulptor/es/spec.clj][Please reference for argument's specs for functions]]
 ** Configure Environment
  - first DynamoDB options and table name need to be defined.  
  
