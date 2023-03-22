@@ -3,7 +3,14 @@
     [lazyskulptor.es.spec]
     [lazyskulptor.es.core :as core]
     [lazyskulptor.es.impl]
-    [clojure.spec.alpha :as s]))
+    [clojure.spec.alpha :as s])
+  (:gen-class
+   :name lazyskulptor.es.EventStore
+   :init init
+   :state state
+   :constructors {[Object String] []}
+   :factory emit
+   :main false))
 (import java.time.Instant)
 
 
@@ -49,3 +56,10 @@
 
 (defn list-tb [] (core/list-tb :default))
 (defn set-env [dynamo-option table-name] (core/set-env dynamo-option table-name))
+
+;; java interface
+(defn -init [dynamo-option table-name]
+  [[] (ref (set-env dynamo-option table-name))])
+
+(defn -save-event [events]
+  (save-event events))
