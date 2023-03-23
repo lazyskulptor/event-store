@@ -41,15 +41,12 @@
                      :throughput   {:read 1 :write 1}}]
      :block?       true}))
 
-(defn exist-tb? [tbname]
-  (let [tbs (core/list-tb :default)]
-    (some #{tbname} tbs) ))
-
 ;; core implementation
 (defmethod ^:private core/set-env :default [config tbname]
   (swap! *client-opts* (fn [_] config))
   (swap! *tbname* (fn [_] tbname))
-  (when (not (exist-tb? @*tbname*))
+  (if-let [desc (far/describe-table @*client-opts* @*tbname*)]
+    desc
     (create-tb @*client-opts* @*tbname*)))
 
 (defn- query [prim-key-conds opts]
