@@ -2,8 +2,7 @@
   (:require
     [lazyskulptor.es.spec]
     [lazyskulptor.es.core :as core]
-    [lazyskulptor.es.impl]
-    [clojure.spec.alpha :as s])
+    [lazyskulptor.es.impl :as impl])
   (:gen-class
    :name lazyskulptor.es.EventStore
    :init init
@@ -11,55 +10,25 @@
    :constructors {[Object String] []}
    :factory emit
    :main false))
-(import java.time.Instant)
-
-
-;; utils
-(defn- seek-oldest [seqs before?]
-  (loop [oldest (first seqs) sub (next seqs) index 0 cursor 1]
-    (cond
-      (nil? sub)
-      (list (first oldest)
-            (when seqs
-              (filterv some? (assoc seqs index (next oldest)))))
-      (and oldest (before? (ffirst sub) (first oldest)))
-      (recur (first sub) (next sub) cursor (inc cursor))
-      :else (recur oldest (next sub) index (inc cursor)))))
-
-(defn- merge-stream [f ids]
-  {:pre [(s/valid? coll? ids)]}
-  (let [before? (fn [d1 d2]
-                  (.isBefore (Instant/parse (:time d1))
-                             (Instant/parse (:time d2))))
-        select (fn worker [seqs]
-                 (lazy-seq
-                   (let [[oldest next-seqs] (seek-oldest seqs before?)]
-                     (if (first next-seqs)
-                       (cons oldest (worker next-seqs))
-                       (if oldest (list oldest) (list))))))
-        seqs (mapv f ids)]
-    (select seqs)))
-
-(defn- as-coll [x]
-  (if (coll? x) x [x]))
 
 ;; interface
-(defn save-event [events] (core/save-event events))
-
-(defn by-entity-ids
-  ([entity-id-list] (merge-stream core/by-entity-id (as-coll entity-id-list)))
-  ([entity-id-list event-type time] (merge-stream #(core/by-entity-id % event-type time) (as-coll entity-id-list))))
-
-(defn by-event-types
-  ([type-name-list] (merge-stream core/by-event-type (as-coll type-name-list)))
-  ([type-name-list time] (merge-stream #(core/by-event-type % time) (as-coll type-name-list))))
-
-(defn list-tb [] (core/list-tb :default))
-(defn set-env [dynamo-option table-name] (core/set-env dynamo-option table-name))
+(defn boot [client-opts tb-name]
+  (core/functions
+   (impl/query client-opts tb-name)
+   (impl/save-event-fn client-opts tb-name)
+   (impl/list-tb client-opts)))
 
 ;; java interface
-(defn -init [dynamo-option table-name]
-  [[] (ref (set-env dynamo-option table-name))])
 
-(defn -save-event [events]
-  (save-event events))
+(defn -init [dynamo-option table-name]
+  [[] (ref (boot dynamo-option table-name))])
+
+(defn -save-event [this event]
+  (let [state (.state this)] ((@state core/save-event) event)))
+
+(defn -by-entity-ids 
+  ([this entity-id-list]
+   (let [state (.state this)] ((@state core/by-id) entity-id-list)))
+  ([this entity-id-list event-type time]
+   (let [state (.state this)]
+     ((@state core/by-id) entity-id-list event-type time))))
