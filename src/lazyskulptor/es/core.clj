@@ -94,7 +94,7 @@
                        ([id] (internal-fn id nil nil))
                        ([id event-type time] ((by-id-fn query-fn) id event-type (ensure-instant time) nil)))
         by-event-type (fn internal-fn
-                        ([type-name] (internal-fn [type-name nil]))
+                        ([type-name] (internal-fn type-name nil))
                         ([type-name time] ((by-type-fn query-fn) type-name (ensure-instant time) nil)))
         by-entity-ids (fn
                         ([id-list] (merge-stream by-entity-id (as-coll id-list)))

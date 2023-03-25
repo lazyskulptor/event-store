@@ -13,6 +13,7 @@
 
 ;; interface
 (defn boot [client-opts tb-name]
+  (impl/ensure-tb client-opts tb-name)
   (core/functions
    (impl/query client-opts tb-name)
    (impl/save-event-fn client-opts tb-name)
